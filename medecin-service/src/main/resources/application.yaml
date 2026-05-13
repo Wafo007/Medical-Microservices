@@ -1,0 +1,46 @@
+# ============================================
+# CONFIGURATION MEDECIN SERVICE
+# ============================================
+# Chaque microservice a son propre port unique.
+# C'est comme avoir des numéros de chambre différents
+# dans le même hôpital.
+server:
+  port: 8082  # Port unique (8081 = patient, 8082 = medecin, 8083 = rdv)
+
+spring:
+  application:
+    # Nom EN MAJUSCULES utilisé par Eureka et la Gateway
+    # La Gateway redirige vers ce nom : lb://MEDECIN-SERVICE
+    name: MEDECIN-SERVICE
+
+  # ============================================
+  # BASE DE DONNEES POSTGRESQL
+  # ============================================
+  # Base SEPAREE du patient-service (isolation des données)
+  # C'est le principe fondamental des microservices :
+  # chaque service possède SA propre base de données.
+  datasource:
+    url: jdbc:postgresql://localhost:5433/db_medecins
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update  # Crée/modifie les tables automatiquement
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+# ============================================
+# ENREGISTREMENT EUREKA
+# ============================================
+# Le service s'annonce au serveur d'annuaire pour être découvert.
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true

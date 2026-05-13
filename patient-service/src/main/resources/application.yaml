@@ -1,0 +1,43 @@
+# ============================================
+# CONFIGURATION PATIENT SERVICE
+# Port unique pour ce microservice
+# ============================================
+server:
+  port: 8081
+
+# Nom identifiant ce service dans l'ecosysteme
+spring:
+  application:
+    name: PATIENT-SERVICE  # DOIT matcher le nom dans la Gateway
+  
+  # ============================================
+  # CONFIGURATION BASE DE DONNEES POSTGRESQL
+  # ============================================
+  datasource:
+    url: jdbc:postgresql://localhost:5432/db_patients
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+  
+  # JPA : Java Persistence API (mapping objet-relationnel)
+  jpa:
+    hibernate:
+      # 'update' = cree/modifie auto les tables selon les entites
+      # 'create-drop' = recree a chaque demarrage (dev only!)
+      ddl-auto: update
+    show-sql: true  # Affiche les requetes SQL dans la console (debug)
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true  # SQL formate (lisible)
+
+# ============================================
+# ENREGISTREMENT AUPRES D'EUREKA
+# Ce service va s'annoncer au serveur d'annuaire
+# ============================================
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true  # Utilise IP plutot que hostname

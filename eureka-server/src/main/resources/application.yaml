@@ -1,0 +1,14 @@
+server:
+  port: 8761  # Port standard Eureka
+
+spring:
+  application:
+    name: eureka-server  # Nom dans l'annuaire
+
+# Configuration Eureka : ce serveur ne s'enregistre pas lui-même
+eureka:
+  client:
+    register-with-eureka: false  # Ne pas s'auto-enregistrer
+    fetch-registry: false        # Ne pas chercher d'autres services
+  server:
+    enable-self-preservation: false  # Désactive la protection (dev mode)

@@ -1,0 +1,32 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      routes:
+        # Route vers Patient Service
+        - id: patient-service
+          uri: lb://PATIENT-SERVICE  # lb = load balancer via Eureka
+          predicates:
+            - Path=/api/patients/**  # Toute URL commençant par /api/patients/
+        
+        # Route vers Médecin Service  
+        - id: medecin-service
+          uri: lb://MEDECIN-SERVICE
+          predicates:
+            - Path=/api/medecins/**
+        
+        # Route vers RDV Service
+        - id: rdv-service
+          uri: lb://RDV-SERVICE
+          predicates:
+            - Path=/api/rendezvous/**
+
+# Enregistrement auprès d'Eureka
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
