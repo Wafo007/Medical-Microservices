@@ -20,10 +20,9 @@ spring:
   # C'est le principe fondamental des microservices :
   # chaque service possède SA propre base de données.
   datasource:
-    url: jdbc:postgresql://localhost:5433/db_medecins
+    url: jdbc:postgresql://localhost:5432/db_medecins  # ← base différente
     username: postgres
-    password: postgres
-    driver-class-name: org.postgresql.Driver
+    password: ton_mot_de_passe
 
   jpa:
     hibernate:

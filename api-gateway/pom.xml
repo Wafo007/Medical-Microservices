@@ -46,6 +46,78 @@
 			<scope>runtime</scope>
 			<optional>true</optional>
 		</dependency>
+		<!-- ============================================
+             SPRING SECURITY : Le bouclier de sécurité
+             ============================================
+             Fournit :
+             - Gestion des utilisateurs (UserDetails)
+             - Filtres de sécurité (qui bloque/autorise)
+             - Encodage des mots de passe (bcrypt)
+             - Protection CSRF, sessions, etc.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+        
+        <!-- ============================================
+             SPRING DATA JPA : Pour la table users
+             ============================================
+             Même principe que dans Patient/Médecin/RDV Service.
+             On va créer une entité User et un repository.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+        
+        <!-- ============================================
+             POSTGRESQL DRIVER : Base de données users
+             ============================================
+             On utilise la MÊME installation PostgreSQL locale,
+             mais une base différente : db_users
+        -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        
+        <!-- ============================================
+             JWT (JSON WEB TOKEN) : 3 bibliothèques
+             ============================================
+             jjwt-api    : Interfaces et définitions
+             jjwt-impl   : Implémentation (runtime)
+             jjwt-jackson: Parsing JSON (runtime)
+             
+             Pourquoi 3 jars ? L'API est séparée de l'implémentation,
+             comme JDBC (interface) vs MySQL Driver (implémentation).
+        -->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+            <version>0.12.3</version>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <version>0.12.3</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <version>0.12.3</version>
+            <scope>runtime</scope>
+        </dependency>
+        
+        <!-- Lombok (optionnel mais pratique) -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
