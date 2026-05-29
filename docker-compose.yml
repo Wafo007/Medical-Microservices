@@ -1,0 +1,184 @@
+# ============================================
+# DOCKER COMPOSE - MEDICAL MICROSERVICES
+# ============================================
+# Version du format Docker Compose
+# '3.8' = version récente, compatible avec la plupart des installations
+version: '3.8'
+
+# ============================================
+# SERVICES (conteneurs à lancer)
+# ============================================
+services:
+  
+  # ------------------------------------------
+  # 1. POSTGRESQL - Base de données partagée
+  # ------------------------------------------
+  # On utilise UNE SEULE instance PostgreSQL
+  # avec 4 bases de données (patients, medecins, rendezvous, users)
+  # C'est plus simple que 4 conteneurs PostgreSQL séparés
+  postgres:
+    image: postgres:15-alpine  # Image officielle PostgreSQL 15 (légère)
+    container_name: medical-postgres
+    environment:
+      # Variables d'environnement pour initialiser PostgreSQL
+      POSTGRES_USER: postgres       # Super-utilisateur
+      POSTGRES_PASSWORD: postgres   # Mot de passe (en dev seulement !)
+      POSTGRES_DB: postgres         # Base par défaut
+    ports:
+      - "5432:5432"  # Port accessible depuis l'hôte
+    volumes:
+      # Volume persistant : les données survivent au redémarrage
+      - postgres-data:/var/lib/postgresql/data
+      # Script d'initialisation : crée les 4 bases au premier démarrage
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    networks:
+      - medical-network
+    healthcheck:
+      # Vérifie que PostgreSQL répond avant de démarrer les autres services
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ------------------------------------------
+  # 2. EUREKA SERVER - Annuaire des services
+  # ------------------------------------------
+  eureka-server:
+    build:
+      context: ./eureka-server      # Dossier contenant le Dockerfile
+      dockerfile: Dockerfile
+    container_name: medical-eureka
+    ports:
+      - "8761:8761"
+    environment:
+      # Configuration spécifique pour Docker
+      # Les services s'enregistreront avec le nom du conteneur
+      EUREKA_INSTANCE_HOSTNAME: eureka-server
+      EUREKA_CLIENT_REGISTER_WITH_EUREKA: "false"
+      EUREKA_CLIENT_FETCH_REGISTRY: "false"
+    networks:
+      - medical-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8761/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ------------------------------------------
+  # 3. API GATEWAY - Porte d'entrée + Sécurité
+  # ------------------------------------------
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    container_name: medical-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      # URL de connexion à PostgreSQL (nom du conteneur = hostname)
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/db_users
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      
+      # URL d'Eureka (nom du conteneur = hostname)
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      
+      # JWT (même clé que en local)
+      JWT_SECRET: maCleSecretePourLeDevoirMedical2026NePasUtiliserEnProduction
+      JWT_EXPIRATION: "86400000"
+    depends_on:
+      postgres:
+        condition: service_healthy      # Attendre que PostgreSQL soit prêt
+      eureka-server:
+        condition: service_healthy      # Attendre qu'Eureka soit prêt
+    networks:
+      - medical-network
+
+  # ------------------------------------------
+  # 4. PATIENT SERVICE
+  # ------------------------------------------
+  patient-service:
+    build:
+      context: ./patient-service
+      dockerfile: Dockerfile
+    container_name: medical-patient
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/db_patients
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      SERVER_PORT: "8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - medical-network
+
+  # ------------------------------------------
+  # 5. MEDECIN SERVICE
+  # ------------------------------------------
+  medecin-service:
+    build:
+      context: ./medecin-service
+      dockerfile: Dockerfile
+    container_name: medical-medecin
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/db_medecins
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      SERVER_PORT: "8082"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - medical-network
+
+  # ------------------------------------------
+  # 6. RDV SERVICE (avec IA Mistral)
+  # ------------------------------------------
+  rdv-service:
+    build:
+      context: ./rdv-service
+      dockerfile: Dockerfile
+    container_name: medical-rdv
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/db_rendezvous
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      SERVER_PORT: "8083"
+      MISTRAL_API_KEY: ${MISTRAL_API_KEY}  # Récupère la variable d'env de l'hôte
+    depends_on:
+      postgres:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - medical-network
+
+# ============================================
+# VOLUMES (stockage persistant)
+# ============================================
+volumes:
+  postgres-data:
+    # Volume nommé pour les données PostgreSQL
+    # Les bases survivent à "docker-compose down"
+    # Pour tout effacer : "docker-compose down -v"
+
+# ============================================
+# RÉSEAU (communication entre conteneurs)
+# ============================================
+networks:
+  medical-network:
+    driver: bridge  # Réseau privé interne entre les conteneurs
