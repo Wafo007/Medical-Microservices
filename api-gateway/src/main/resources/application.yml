@@ -1,0 +1,65 @@
+# ============================================
+# CONFIGURATION API GATEWAY AVEC SECURITE
+# ============================================
+server:
+  port: 8080
+
+spring:
+  application:
+    name: API-GATEWAY
+
+  # ============================================
+  # BASE DE DONNEES POSTGRESQL (OBLIGATOIRE)
+  # ============================================
+  datasource:
+    url: jdbc:postgresql://localhost:5432/db_users
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+  # ============================================
+  # ROUTES VERS LES MICROSERVICES
+  # ============================================
+  cloud:
+    gateway:
+      routes:
+        - id: patient-service
+          uri: lb://PATIENT-SERVICE
+          predicates:
+            - Path=/api/patients/**
+        
+        - id: medecin-service
+          uri: lb://MEDECIN-SERVICE
+          predicates:
+            - Path=/api/medecins/**
+        
+        - id: rdv-service
+          uri: lb://RDV-SERVICE
+          predicates:
+            - Path=/api/rendezvous/**
+
+# ============================================
+# EUREKA
+# ============================================
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true
+
+# ============================================
+# CONFIGURATION JWT
+# ============================================
+jwt:
+  secret: maCleSecretePourLeDevoirMedical2026NePasUtiliserEnProduction
+  expiration: 86400000
