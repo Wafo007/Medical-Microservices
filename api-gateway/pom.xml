@@ -8,8 +8,8 @@
     <!-- ============================================
          PARENT SPRING BOOT
          ============================================
-         Version 3.2.0 : stable, compatible avec Spring Cloud 2023.0.0
-         Ta version 4.0.6 est trop récente et incompatible.
+         Version 3.2.0 : stable et largement utilisée.
+         Compatible avec Spring Cloud 2023.0.x
     -->
     <parent>
         <groupId>org.springframework.boot</groupId>
@@ -22,66 +22,117 @@
     <artifactId>api-gateway</artifactId>
     <version>1.0.0</version>
     <name>API Gateway</name>
-    <description>API Gateway avec sécurité JWT</description>
+    <description>API Gateway avec sécurité JWT pour la clinique médicale</description>
     
     <properties>
+        <!-- Java 17 : version LTS recommandée -->
         <java.version>17</java.version>
-        <!-- ============================================
-             SPRING CLOUD VERSION
-             2023.0.0 = compatible avec Spring Boot 3.2.x
+        <!-- 
+            Spring Cloud 2023.0.0 = release train compatible Spring Boot 3.2.x
+            Cette version gère automatiquement les versions de Gateway, Eureka, etc.
         -->
         <spring-cloud.version>2023.0.0</spring-cloud.version>
     </properties>
     
     <dependencies>
         <!-- ============================================
-             SPRING CLOUD GATEWAY (WebFlux - standard)
+             SPRING CLOUD GATEWAY (WebFlux)
              ============================================
-             UNE SEULE dépendance Gateway. Pas de version car gérée
-             par le dependencyManagement de Spring Cloud.
+             Cœur du projet : fournit RouteLocatorBuilder, GatewayFilter, etc.
+             La version est gérée par spring-cloud-dependencies (dependencyManagement).
         -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-gateway</artifactId>
         </dependency>
         
-        <!-- Eureka Client -->
+        <!-- ============================================
+             SPRING CLOUD GATEWAY MVC (COMPATIBILITÉ)
+             ============================================
+             Spring Boot 3.2+ a changé certaines classes internes.
+             Cette dépendance assure la compatibilité avec RouteLocatorBuilder.
+             AJOUT IMPORTANT pour résoudre ClassNotFoundException.
+        -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-gateway-server</artifactId>
+        </dependency>
+        
+        <!-- ============================================
+             EUREKA CLIENT
+             ============================================
+             Permet à la Gateway de s'enregistrer et de découvrir
+             les autres microservices via Eureka Server.
+        -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
         </dependency>
         
-        <!-- Spring Security (WebFlux) -->
+        <!-- ============================================
+             SPRING SECURITY (WebFlux)
+             ============================================
+             Sécurité réactive pour Spring Cloud Gateway (basé sur WebFlux).
+             Fournit PasswordEncoder, SecurityWebFilterChain, etc.
+             NE PAS confondre avec spring-boot-starter-security MVC !
+        -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
         
-        <!-- Spring Data JPA -->
+        <!-- ============================================
+             SPRING DATA JPA
+             ============================================
+             Pour la gestion de la table users (authentification).
+             Hibernate inclus automatiquement.
+        -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
         
-        <!-- PostgreSQL -->
+        <!-- ============================================
+             POSTGRESQL DRIVER
+             ============================================
+             Driver JDBC pour se connecter à PostgreSQL.
+             Scope runtime = non inclus dans le JAR final (fourni par le conteneur).
+        -->
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
         </dependency>
         
-        <!-- JWT -->
+        <!-- ============================================
+             JWT (JSON WEB TOKEN) - API
+             ============================================
+             Interfaces pour créer et parser les tokens JWT.
+        -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-api</artifactId>
             <version>0.12.3</version>
         </dependency>
+        
+        <!-- ============================================
+             JWT - IMPLÉMENTATION
+             ============================================
+             Implémentation concrète de jjwt-api.
+             Scope runtime = chargé dynamiquement.
+        -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-impl</artifactId>
             <version>0.12.3</version>
             <scope>runtime</scope>
         </dependency>
+        
+        <!-- ============================================
+             JWT - JACKSON (JSON)
+             ============================================
+             Sérialisation/désérialisation JSON pour les tokens.
+        -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-jackson</artifactId>
@@ -89,14 +140,24 @@
             <scope>runtime</scope>
         </dependency>
         
-        <!-- Lombok -->
+        <!-- ============================================
+             LOMBOK
+             ============================================
+             Génération automatique de getters, setters, constructeurs.
+             Optional = non transitif (les projets dépendants ne l'héritent pas).
+        -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <optional>true</optional>
         </dependency>
         
-        <!-- Spring Boot DevTools (optionnel, pour le dev) -->
+        <!-- ============================================
+             SPRING BOOT DEVTOOLS
+             ============================================
+             Rechargement automatique en développement.
+             Scope runtime = uniquement pour le dev.
+        -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-devtools</artifactId>
@@ -104,7 +165,11 @@
             <optional>true</optional>
         </dependency>
         
-        <!-- Tests -->
+        <!-- ============================================
+             TESTS
+             ============================================
+             Spring Boot Test, JUnit, Mockito, etc.
+        -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
@@ -112,6 +177,13 @@
         </dependency>
     </dependencies>
     
+    <!-- ============================================
+         GESTION DES VERSIONS SPRING CLOUD
+         ============================================
+         Importe le BOM (Bill of Materials) de Spring Cloud.
+         Cela garantit que toutes les dépendances Spring Cloud
+         (Gateway, Eureka, etc.) sont compatibles entre elles.
+    -->
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -126,6 +198,12 @@
     
     <build>
         <plugins>
+            <!-- ============================================
+                 SPRING BOOT MAVEN PLUGIN
+                 ============================================
+                 Permet de créer un JAR exécutable avec "mvn package".
+                 Inclut toutes les dépendances dans le JAR.
+            -->
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>

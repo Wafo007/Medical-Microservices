@@ -1,110 +1,56 @@
-/**
- * Client HTTP Axios configuré pour communiquer avec l'API Gateway.
- * 
- * Ce fichier est le PONT entre le frontend React et le backend Spring Boot.
- * Il gère automatiquement :
- * - L'URL de base (la Gateway sur port 8080)
- * - L'envoi du token JWT dans chaque requête
- * - La redirection vers login si le token expire
- */
-
 import axios from 'axios';
 
-// ============================================
-// CONFIGURATION DE BASE
-// ============================================
-// L'API Gateway est le SEUL point d'entrée.
-// Tous les appels passent par elle, elle route vers les bons services.
-
 const api = axios.create({
-  baseURL: 'http://localhost:8080',  // URL de la Gateway
+  baseURL: 'http://localhost:8080',
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
 // ============================================
-// INTERCEPTEUR DE REQUÊTES
+// INTERCEPTEUR DE RÉPONSES — VERSION DÉSACTIVÉE
 // ============================================
-// Avant CHAQUE requête sortante, on ajoute le token JWT dans le header.
-// C'est comme présenter son badge à chaque porte.
-
-api.interceptors.request.use(
-  (config) => {
-    // Récupère le token stocké dans le navigateur (localStorage)
-    const token = localStorage.getItem('token');
-    
-    if (token) {
-      // Ajoute le header Authorization: Bearer <token>
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    
-    return config;
-  },
-  (error) => {
-    // Si une erreur survient avant l'envoi
-    return Promise.reject(error);
-  }
-);
-
-// ============================================
-// INTERCEPTEUR DE RÉPONSES
-// ============================================
-// Quand le serveur répond, on vérifie s'il y a une erreur 401 (non autorisé).
-// Si oui, le token a expiré ou est invalide → on déconnecte l'utilisateur.
 
 api.interceptors.response.use(
   (response) => {
-    // Réponse OK, on la retourne telle quelle
     return response;
   },
   (error) => {
+    // DÉSACTIVÉ : ne redirige plus automatiquement vers login
+    // if (error.response && error.response.status === 401) {
+    //   localStorage.removeItem('token');
+    //   window.location.href = '/login';
+    // }
+    
+    // À la place : log l'erreur mais ne redirige pas
     if (error.response && error.response.status === 401) {
-      // Token expiré ou invalide
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      // Redirection vers login (on utilisera window.location pour simplifier)
-      window.location.href = '/login';
+      console.warn('Erreur 401 - Token invalide, mais navigation non bloquée pour la démo');
     }
+    
     return Promise.reject(error);
   }
 );
 
-// ============================================
-// FONCTIONS API PRINCIPALES
-// ============================================
-
 export const authAPI = {
-  /** Connexion : envoie login/password, reçoit token JWT */
   login: (credentials) => api.post('/api/auth/login', credentials),
 };
 
 export const patientAPI = {
-  /** Récupère tous les patients (rôle MEDECIN uniquement) */
   getAll: () => api.get('/api/patients'),
-  /** Crée un nouveau patient */
   create: (data) => api.post('/api/patients', data),
-  /** Modifie un patient */
   update: (id, data) => api.put(`/api/patients/${id}`, data),
-  /** Supprime un patient */
   delete: (id) => api.delete(`/api/patients/${id}`),
 };
 
 export const medecinAPI = {
-  /** Récupère tous les médecins */
   getAll: () => api.get('/api/medecins'),
-  /** Recherche par spécialité (utilisé par l'IA) */
   getBySpecialite: (specialite) => api.get(`/api/medecins/specialite?specialite=${specialite}`),
 };
 
 export const rdvAPI = {
-  /** Récupère tous les rendez-vous */
   getAll: () => api.get('/api/rendezvous'),
-  /** Crée un rendez-vous */
   create: (data) => api.post('/api/rendezvous', data),
-  /** Récupère les RDV d'un patient */
   getByPatient: (patientId) => api.get(`/api/rendezvous/patient/${patientId}`),
-  /** Appelle l'IA pour suggérer un médecin */
   suggestMedecin: (symptomes) => api.get(`/api/rendezvous/suggestion?symptomes=${encodeURIComponent(symptomes)}`),
 };
 

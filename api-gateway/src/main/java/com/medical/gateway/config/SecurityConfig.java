@@ -7,66 +7,98 @@ import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.server.SecurityWebFilterChain;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.reactive.CorsConfigurationSource;
+import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
+
+import java.util.Arrays;
+import java.util.List;
 
 /**
- * Configuration de Spring Security pour la Gateway.
+ * Configuration Spring Security + CORS pour API Gateway (WebFlux).
  * 
- * @EnableWebFluxSecurity : active la sécurité réactive (WebFlux)
- * car Spring Cloud Gateway est basé sur WebFlux (pas Spring MVC).
- * 
- * Cette classe définit :
- * 1. L'encodeur de mot de passe (bcrypt)
- * 2. Les règles de sécurité (quels endpoints sont publics/protégés)
- * 
- * NOTE : Le filtrage JWT principal est fait par JwtAuthenticationFilter
- * (composant Gateway), pas par Spring Security directement.
- * Cette configuration est nécessaire pour désactiver CSRF et
- * configurer l'authentification stateless (sans session).
+ * CORS est configuré ICI, au niveau de Spring Security, qui s'exécute
+ * AVANT les filtres Gateway. Cela garantit que les requêtes OPTIONS
+ * reçoivent les headers CORS avant toute autre vérification.
  */
+
 @Configuration
 @EnableWebFluxSecurity
 public class SecurityConfig {
-    
-    /**
-     * Encodeur de mot de passe BCrypt.
-     * 
-     * BCrypt est l'algorithme standard en 2024 car :
-     * - Il hache avec un "salt" aléatoire (même mot de passe = hash différent)
-     * - Il est lent volontairement (résiste aux attaques par force brute)
-     * - Il est adaptatif (on peut augmenter la complexité avec le temps)
-     * 
-     * Exemple :
-     *   encode("password123") → "$2a$10$N9qo8uLOickgx2ZMRZoMy.Mqr..."
-     *   matches("password123", hash) → true
-     *   matches("wrong", hash) → false
-     */
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
-    
+
+    /**
+     * Configuration CORS - CRITIQUE pour le frontend React.
+     * Cette configuration est appliquée à TOUTES les requêtes,
+     * y compris les OPTIONS (preflight).
+     */
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        
+        // Origines autorisées (React)
+        config.setAllowedOrigins(List.of("http://localhost:3000"));
+        
+        // Méthodes autorisées
+        config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+        
+        // Headers autorisés
+        config.setAllowedHeaders(Arrays.asList(
+            "Authorization", "Content-Type", "Accept", "Origin",
+            "X-Requested-With", "Access-Control-Request-Method",
+            "Access-Control-Request-Headers"
+        ));
+        
+        // Expose le header Authorization (pour que React puisse le lire)
+        config.setExposedHeaders(List.of("Authorization"));
+        
+        // Autorise les cookies/credentials
+        config.setAllowCredentials(true);
+        
+        // Cache du preflight (1 heure)
+        config.setMaxAge(3600L);
+
+        // Applique à toutes les URLs
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        
+        return source;
+    }
+
     /**
      * Chaîne de filtres de sécurité.
      * 
-     * On désactive plusieurs protections par défaut car :
-     * - CSRF : inutile pour une API REST (pas de formulaires HTML)
-     * - Form login : on utilise JWT, pas de sessions
-     * - HTTP Basic : on utilise JWT, pas de login/password par requête
-     * 
-     * La vraie sécurité est assurée par notre JwtAuthenticationFilter
-     * qui s'exécute au niveau Gateway.
+     * ORDRE IMPORTANT :
+     * 1. CORS (cors()) → ajoute les headers CORS
+     * 2. CSRF désactivé (pas besoin pour API REST)
+     * 3. Autorise /api/auth/login sans authentification
+     * 4. Tout le reste nécessite authentification
      */
     @Bean
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
         return http
-                .csrf(csrf -> csrf.disable())           // Désactive CSRF (API REST)
-                .formLogin(form -> form.disable())      // Désactive login formulaire
-                .httpBasic(basic -> basic.disable())    // Désactive HTTP Basic
-                .authorizeExchange(exchanges -> 
-                    exchanges
-                        .pathMatchers("/api/auth/**").permitAll()  // Login public
-                        .anyExchange().permitAll()                  // Le reste : filtre JWT gère
+                // ÉTAPE 1 : CORS en PREMIER
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                
+                // ÉTAPE 2 : Désactive CSRF (API REST stateless)
+                .csrf(csrf -> csrf.disable())
+                
+                // ÉTAPE 3 : Configuration des autorisations
+                .authorizeExchange(exchanges -> exchanges
+                        // Routes publiques (pas de token nécessaire)
+                        .pathMatchers("/api/auth/login", "/api/auth/register").permitAll()
+                        // Tout le reste nécessite authentification
+                        .anyExchange().authenticated()
                 )
+                
+                // ÉTAPE 4 : Désactive le login par formulaire (on utilise JWT)
+                .formLogin(form -> form.disable())
+                .httpBasic(basic -> basic.disable())
+                
                 .build();
     }
 }

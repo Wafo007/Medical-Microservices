@@ -1,0 +1,466 @@
+/* ============================================
+   PRENDRE RDV — WIZARD MULTI-ÉTAPES
+   ============================================
+   Formulaire progressif avec sélection visuelle
+*/
+
+/* ---------- BARRE DE PROGRESSION ---------- */
+.progress-bar {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+  padding: 0 1rem;
+}
+
+.progress-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  position: relative;
+}
+
+.progress-step::after {
+  content: '';
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  width: 100%;
+  height: 2px;
+  background: #e2e8f0;
+  z-index: 0;
+}
+
+.progress-step:last-child::after {
+  display: none;
+}
+
+.progress-step.completed::after {
+  background: #10b981;
+}
+
+.step-number {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #e2e8f0;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.875rem;
+  z-index: 1;
+  transition: all 0.3s;
+}
+
+.progress-step.active .step-number {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: white;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
+}
+
+.progress-step.completed .step-number {
+  background: #10b981;
+  color: white;
+}
+
+.step-label {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.progress-step.active .step-label {
+  color: #6366f1;
+}
+
+/* ---------- CONTENU ÉTAPE ---------- */
+.step-content {
+  background: white;
+  border-radius: 1.5rem;
+  padding: 2rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.step-content h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 0.5rem;
+}
+
+.step-desc {
+  color: #64748b;
+  margin-bottom: 2rem;
+}
+
+/* ---------- GRILLE PATIENTS ---------- */
+.patients-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.patient-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 1rem;
+  background: white;
+  cursor: pointer;
+  transition: all 0.3s;
+  text-align: left;
+}
+
+.patient-card:hover {
+  border-color: #6366f1;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+}
+
+.patient-card.selected {
+  border-color: #6366f1;
+  background: rgba(99, 102, 241, 0.05);
+}
+
+.patient-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.patient-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.patient-name {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.patient-details {
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.patient-secu {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  font-family: monospace;
+}
+
+.selected-icon {
+  color: #6366f1;
+  flex-shrink: 0;
+}
+
+/* ---------- GRILLE MÉDECINS ---------- */
+.medecins-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.medecin-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 1rem;
+  background: white;
+  cursor: pointer;
+  transition: all 0.3s;
+  text-align: left;
+}
+
+.medecin-card:hover {
+  border-color: #10b981;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
+}
+
+.medecin-card.selected {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.05);
+}
+
+.medecin-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #10b981, #06b6d4);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.medecin-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.medecin-name {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.medecin-specialite {
+  font-size: 0.875rem;
+  color: #10b981;
+  font-weight: 600;
+}
+
+.medecin-ordre {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+/* ---------- CRÉNEAUX ---------- */
+.creneaux-section {
+  margin: 1.5rem 0;
+}
+
+.creneaux-section h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 1rem;
+}
+
+.creneaux-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.75rem;
+}
+
+.creneau-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 1rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 0.75rem;
+  background: white;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-size: 0.875rem;
+}
+
+.creneau-btn:hover {
+  border-color: #6366f1;
+  background: rgba(99, 102, 241, 0.05);
+}
+
+.creneau-btn.selected {
+  border-color: #6366f1;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: white;
+}
+
+.creneau-salle {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.creneau-btn.selected .creneau-salle {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.loading-creneaux {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 2rem;
+  color: #64748b;
+}
+
+.no-creneaux {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 2rem;
+  background: #fef3c7;
+  border-radius: 0.75rem;
+  color: #92400e;
+}
+
+/* ---------- FORMULAIRES ---------- */
+.date-group,
+.motif-group {
+  margin-bottom: 1.5rem;
+}
+
+.date-group input {
+  padding: 0.875rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 0.75rem;
+  font-size: 1rem;
+  width: 100%;
+  max-width: 300px;
+}
+
+.date-group input:focus {
+  outline: none;
+  border-color: #6366f1;
+}
+
+/* ---------- RÉCAPITULATIF ---------- */
+.recap-card {
+  background: #f8fafc;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.recap-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.recap-row:last-child {
+  border-bottom: none;
+}
+
+.recap-row svg {
+  color: #6366f1;
+  flex-shrink: 0;
+}
+
+.recap-row div {
+  display: flex;
+  flex-direction: column;
+}
+
+.recap-label {
+  font-size: 0.75rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.recap-value {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+/* ---------- ACTIONS ---------- */
+.step-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+/* ---------- PAGE DE SUCCÈS ---------- */
+.success-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.success-card {
+  text-align: center;
+  padding: 3rem;
+  max-width: 500px;
+}
+
+.success-icon {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #10b981, #06b6d4);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 2rem;
+}
+
+.success-card h2 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 0.5rem;
+}
+
+.success-card > p {
+  color: #64748b;
+  margin-bottom: 2rem;
+}
+
+.success-details {
+  background: #f8fafc;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  text-align: left;
+}
+
+.success-details p {
+  margin-bottom: 0.5rem;
+  color: #374151;
+}
+
+.success-details p:last-child {
+  margin-bottom: 0;
+}
+
+.success-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+/* ---------- BANNIÈRE INFO ---------- */
+.info-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: 0.75rem;
+  color: #7c3aed;
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+}
+
+/* ---------- RESPONSIVE ---------- */
+@media (max-width: 768px) {
+  .progress-bar {
+    font-size: 0.75rem;
+  }
+  
+  .patients-grid,
+  .medecins-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .creneaux-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
